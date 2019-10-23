@@ -25,6 +25,8 @@ services:
       - lasneo4j
       - blat-genome
       - blat-transcriptome
+    extra_hosts:
+      - www.mylas.com:127.0.0.1
 
   lasmysql:
     container_name: lasmysql
