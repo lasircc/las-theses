@@ -193,7 +193,7 @@ var QueryGen = {
         QueryGen.template.base_query = QueryGen.generateQueryDict();
         if (QueryGen.template.base_query == null)
             return;
-    
+        
         QueryGen.template.blocks = [];
         for (var x in QueryGen.jsonStrGraph) {
             if (x == 'start' || x == 'end')
@@ -202,11 +202,12 @@ var QueryGen = {
             // if it is an entity or a configurable operator (i.e. group by or genealogy id) except the extend operator or a configurable template
             if (b.button_cat == 'qent' || b.button_cat == 'op' && b.button_id != 7 && ((b.button_id != 6 && ops[b.button_id].configurable == true) || (b.button_id == 6 && templates[b.template_id].parameters.length > 0))) {
                 QueryGen.template.blocks.push(b);
+                
                 QueryGen.generateTemplate(b);
                 
             }
         }
-
+        
         QueryGen.template.curr_block_id = 0;
         $("#stf_isTranslator").val("true");
 
@@ -222,8 +223,10 @@ var QueryGen = {
         for (var x in QueryGen.template.conf) {
             QueryGen.saveToTemplate(x);
         }
+        
         // check if an option has been specified for each parameter in each block
         var res = QueryGen.checkTemplate();
+        
         if (res == -1) {
             alert("Please specify an option for all template parameters.", "Cannot continue");
             return;
@@ -244,7 +247,7 @@ var QueryGen = {
             alert("Please provide a title for the template. A concise description, although not mandatory, is recommended.");
             return;
         }
-
+        
         var ctrl = getBusyOverlay("viewport", {color:'#B2B2B2', opacity:0.3, text:'Saving template, please wait...', style: 'color: #222222;'}, {color:'#222222', weight:'3', size:100, type:'rectangle', count:12});
 
         // check if template name is already in use
@@ -257,6 +260,7 @@ var QueryGen = {
                     ctrl.remove();
                     alert("The template name you chose is already in use. Please choose a different name.");
                 } else {
+                    
                     QueryGen.postProcessTemplate();
                     QueryGen.template.base_query.graph_nodes = JSON.stringify(QueryGen.template.base_query.graph_nodes);
                     $("#stf_title").val(title);
@@ -927,7 +931,7 @@ var QueryGen = {
             );
             return;
         }
-
+        
         QueryGen.saveAsTranslator();
     }, 
     
@@ -1072,7 +1076,7 @@ var QueryGen = {
         var conn = QueryGen.checkConnected();
         var paramsOk = QueryGen.checkParameters();
         var errMsg = '';
-
+        
         
         if (!atleast1) {
             errMsg += '-query graph should include at least one block<br>';
@@ -4240,7 +4244,7 @@ var QueryGen = {
                 connBType = QueryGen.getGraphNode(connBlockId).button_id;
                 connBCat = QueryGen.getGraphNode(connBlockId).button_cat;
                 connBOutType = QueryGen.getGraphNode(connBlockId).output_type_id;
-
+            
                 if (connBCat == "qent") { // entity
                     var ok = GUI.getManyToOneRelationships(connBOutType).length > 0;
                     var msg = GUI.getButtonName(connBOutType) + " does not allow grouping operations.";

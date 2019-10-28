@@ -20,7 +20,7 @@ def createTemplate(request):
         t.name = request.POST['title']
         t.description = request.POST['description']
         conf = json.loads(request.POST['configuration'])
-        print 'conf', conf
+        print '----conf', conf
         t.isTranslator = json.loads(request.POST['isTranslator'])
         t.outputTranslatorsList = json.dumps(bq['end']['translators'])
         
@@ -34,6 +34,7 @@ def createTemplate(request):
             bq[secondBlockId]['w_in'][0] = bq[firstBlockId]['w_in'][0]
             del bq[firstBlockId]
             # copy input conf from first to second block
+            print '2nd blockid: ', seconBlockId
             conf[secondBlockId]['inputs'] = conf[firstBlockId]['inputs']
             # delete first block's conf
             del conf[firstBlockId]

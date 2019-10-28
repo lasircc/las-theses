@@ -15,7 +15,7 @@ services:
       - lasmongodb:lasmongodb
       - lasneo4j:lasneo4j
     volumes:
-#      - ./web/las:/srv/www
+      - ./web/las:/srv/www
 #      - ./web/adminScripts:/adminScripts
       - ./web/ssl:/etc/apache2/ssl
       - ./blat:/blat
