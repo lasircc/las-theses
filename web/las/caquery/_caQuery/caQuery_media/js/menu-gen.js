@@ -102,7 +102,7 @@ var f_entity = function buildEntityModal(node){
 
             }else if(node.data.isTranslator!=undefined){
                 //if template insert only query paths available for its output qent type
-                var queryPaths = qent[node.parent[0].data.output].fw_query_paths ;
+                var queryPaths = qent[node.data.output].fw_query_paths ;
 
             }else{
                
@@ -1648,8 +1648,17 @@ function restoreNodeRecursive(i, parent, queryGraph){
         var nend = ggen.connectNodeToEnd(parent);
         nend.config.translators = queryGraph[i].translators;
 
-    } else if(queryGraph[i].button_cat=="op" &&
-    queryGraph[i].button_id<4){    //Extend, Template, GB have 1 input
+    } else if(   (queryGraph[i].button_cat=="op" &&
+                    queryGraph[i].button_id<4 )
+                ||(
+                    queryGraph[i].button_cat=="op" &&
+                    queryGraph[i].button_id==6 && //template
+                    templates[ queryGraph[i].template_id].inputs.length==4
+                )
+    ){    
+        
+        
+        //Extend, Template, GB have 1 input (with one exception)
 
          //if node is an opearator check if is already in canvas
         var avops = ggen.getAvailableOperators();
@@ -1667,18 +1676,25 @@ function restoreNodeRecursive(i, parent, queryGraph){
         }
         if(suitableop_found==false){
              //if not addNode
-             var node = ggen.addNode(type="operator", title=ops[queryGraph[i].button_id].name, parent=parent, nodeclass="operators");
-             node.data=ops[queryGraph[i].button_id];
-             node.config=queryGraph[i];     
+             let name = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id].name : templates[queryGraph[i].template_id].name;
+             if(    queryGraph[i].button_cat=="op" &&
+                    queryGraph[i].button_id==6 && //template
+                    templates[ queryGraph[i].template_id].inputs.length==4)
+                var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass="operators", 4);
+            else
+                var node = ggen.addNode(type="operator", title=name, parent=parent, nodeclass="operators");
+             node.data = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id] : templates[queryGraph[i].template_id];
+             node.config = queryGraph[i];     
         }else return;
             
 
     } else if(queryGraph[i].button_cat=="op"){
         
         //operator with one input
-        var node = ggen.addNode(type="block", title=ops[queryGraph[i].button_id].name, parent=parent, nodeclass="operators");
-        node.data=ops[queryGraph[i].button_id];
-        node.config=queryGraph[i];
+        let name = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id].name : templates[queryGraph[i].template_id].name;
+        var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass="operators");
+        node.data = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id] : templates[queryGraph[i].template_id];
+        node.config = queryGraph[i];
 
     }else if(queryGraph[i].button_cat=="qent"){
 
@@ -1689,9 +1705,17 @@ function restoreNodeRecursive(i, parent, queryGraph){
         node.config=queryGraph[i];
     }
 
+    //if node with 4 input and not every input connected => do not call recursive function
+    //otherwise
     //call recursive for its child
-    if(queryGraph[i].w_out!=undefined && queryGraph[i].w_out.length>0)
-        restoreNodeRecursive(queryGraph[i].w_out[0], node, queryGraph)
+    debugger;
+    if( node==undefined || (node.config.w_in==4 && node.input.length<4) )
+        return;
+    //debugger;
+    if( queryGraph[i].w_out!=undefined && queryGraph[i].w_out.length>0
+    )
+        restoreNodeRecursive(queryGraph[i].w_out[0], node, queryGraph);
+
 }
 
 function loadQueryGraph(queryGraph) {
@@ -2689,8 +2713,8 @@ function prepareTemplateForm(b) {
         for (var i in inputs) {
             var itr = $("<tr></tr>").data("input_id", i);
             var itd1 = $("<td style='text-align: center; font-weight: bold'>" + (parseInt(i)+1) + "</td>");
-            var itd2 = $('<td><label style=" display: inline-block" for="tinput-name"><i>Name:</i></label><input type="text" id="tinput-name" /><br>'
-                        +'<label style=" display: inline-block" for="tinput-descr"><i>Description:</i></label><input type="text" id="tinput-descr" /></td>');
+            var itd2 = $('<td><label style=" display: inline-block" for="tinput-name"><i>Name:</i></label></br><input type="text" id="tinput-name" /><br>'
+                        +'<label style=" display: inline-block" for="tinput-descr"><i>Description:</i></label></br><input type="text" id="tinput-descr" /></td>');
             itd1.appendTo(itr);
             itd2.appendTo(itr);
             itd2.find("input:eq(0)").val(inputs[i].name);
@@ -2795,7 +2819,7 @@ function prepareTemplateForm(b) {
     tbody.find("tr.param td:nth-child(2)").each(function() {
         var f_id = $(this).find("select").data("f_id");
 
-        var x = $('<span style="display: none"><br><label style="width: 80px; display: inline-block"><i>Name:</i></label><input type="text" /><br><label style="width: 80px; display: inline-block"><i>Description:</i></label><input type="text" /></span>')
+        var x = $('<span style="display: none"><br><label style="width: 80px; display: inline-block"><i>Name:</i></label></br><input type="text" /><br><label style="width: 80px; display: inline-block"><i>Description:</i></label></br><input type="text" /></span>')
         $(this).append(x);
         x.find("input:eq(0)").val(QueryGen.template.conf[b.id].parameters[f_id].name);
         x.find("input:eq(1)").val(QueryGen.template.conf[b.id].parameters[f_id].description);

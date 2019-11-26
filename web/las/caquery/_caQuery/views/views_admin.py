@@ -34,7 +34,6 @@ def createTemplate(request):
             bq[secondBlockId]['w_in'][0] = bq[firstBlockId]['w_in'][0]
             del bq[firstBlockId]
             # copy input conf from first to second block
-            print '2nd blockid: ', seconBlockId
             conf[secondBlockId]['inputs'] = conf[firstBlockId]['inputs']
             # delete first block's conf
             del conf[firstBlockId]

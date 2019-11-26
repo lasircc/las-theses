@@ -40,7 +40,7 @@ var constants =  {
     circleNodeClass:"circlenode",
     binaryGraph:false,
     draggableGraph: true,
-    zoommableGraph: false,
+    zoomableGraph: false,
     zoomScale: [0.7,3],
     start: { class:"strt-nd", width:60, height:60, deletable:false, draggable:false,
             clickable:true, customFunction1Enabled: true },
@@ -51,8 +51,8 @@ var constants =  {
             iconsize:25, icon1:"fas fa-cog", icon2:"fas fa-times-circle",
             deletable:true, draggable:false, clickable:true, singleInput:true,
             customFunction1Enabled:true, customFunction2Enabled:true,
-            customFunction3Enabled:true, nodeSingleChild:true },
-    offsety: 130, //180,
+            customFunction3Enabled:true, nodeSingleChild:false },
+    offsety: 90, // 130, //180,
     duration: 750   //of transactions
 };
 
@@ -101,7 +101,7 @@ function defineSettings(cwidth, cheight){
 
 }
 
-//setter
+// ---  setter
 function setBinary(binary=true){
     if(binary!=false &&binary!=true)
         return;
@@ -125,8 +125,17 @@ function setCircleBlocks(circle=true){
 }
 
 function setDragAndZoom(draggable, zoomable){
-    constants.draggableGraph = draggable==true ? true : draggable==false ? false : ConstantSourceNode.draggableGraph;
-    constants.zoommableGraph = zoomable==true ? true : zoomable==false ? false : ConstantSourceNode.zoommableGraph;
+    //if(draggable==true || draggable==false)
+    constants.draggableGraph = draggable==true ? true : draggable==false ? false : constants.draggableGraph;
+    //if(zoomable==true || zoomable==false)
+    constants.zoomableGraph = zoomable==true ? true : zoomable==false ? false : constants.zoomableGraph;
+}
+
+function setNodeSpacing(offsetX, offsetY){
+    if(offsetY>0 && offsetY<500 && offsetX>0 && offsetX < 500)
+    constants.offsety = offsetY;
+    constants.block.marginl = offsetX/2;
+    constants.block.marginr = offsetX/2;
 }
 
 function currentSelectedNode(node=null){
@@ -168,7 +177,7 @@ function initCanvas(container="default"){
 
     //panning and zoom
     var scaleExt =[1,1];
-    if(constants.zoommableGraph) scaleExt =constants.zoomScale;
+    if(constants.zoomableGraph) scaleExt =constants.zoomScale;
     if( constants.draggableGraph){
         svg.call(d3.zoom().scaleExtent(scaleExt)
             .on('start.mousedown', function(){
@@ -209,18 +218,32 @@ function moveNodesRecursive(node, offset){
         || (node.type=='block' && node.input.length==4  && node.parent.length>1)
     ){  
         
-        if(node.parent[1].x>node.parent[0].x)
-            offset=offset-(node.parent[1].x-node.parent[0].x)/2;
-        else
-            offset=offset-(node.parent[0].x-node.parent[1].x)/2;
-        
-        //search the lowest parent y
-        var posy=0;
-        node.parent.forEach(function(d){
+        if(node.parent.lenght==2
+            ||!(node.type=='block' && node.input.length==4)){
+            if(node.parent[1].x>node.parent[0].x)
+                offset=offset-(node.parent[1].x-node.parent[0].x)/2;
+            else
+                offset=offset-(node.parent[0].x-node.parent[1].x)/2;
+        }
+     
+        //search the lowest parent y  and the leftmost and rightmost(for 4input case)      
+       let posy=0;
+       let leftmostparentx=canvaswidth;
+       let rightmostparentx=0;
+       node.parent.forEach(function(d){
             if(d.y+d.size.height>posy)
-                posy=d.y+d.size.height;
-        });
-        node.y = posy + constants.offsety; 
+               posy=d.y+d.size.height;
+            if(d.x<leftmostparentx)
+               leftmostparentx=d.x;  
+            if(d.x>rightmostparentx)
+               rightmostparentx=d.x;        
+       });
+       node.y = posy + constants.offsety; 
+       if(node.type=='block' && node.input.length==4){
+            offset=offset-(rightmostparentx-leftmostparentx)/2;
+            console.log("leftmostparent ",leftmostparentx," position ",node.x," offset ",offset);
+       }
+
     }
    
     for(var i=0; i<node.children.length; i++){
@@ -230,12 +253,11 @@ function moveNodesRecursive(node, offset){
             ||( node.children[i].type=='block'
                 && node.children[i].input.length==4  
                 && node.children[i].parent.length>1 
-                && node.children[i].parent[1]==node)
+                && node.children[i].parent[0]!=node)
             )
             continue;
         moveNodesRecursive(node.children[i],offset);
     }
-    
     node.x += offset;
 }
 
@@ -809,8 +831,9 @@ function addArc(
                 if(destination.parent[0].x>source.x){
                     var tmpconfig = destination.config;
                     var tmpdata = destination.data;
+                    var tmpclass = destination.class;
                     removeNode(destination);
-                    var op = addNode(type="operator", title=tmpdata.name, parent = source);
+                    var op = addNode(type="operator", title=tmpdata.name, parent = source, tmpclass);
                     op.data=tmpdata;
                     op.config=tmpconfig;
                     
@@ -923,9 +946,15 @@ function removeParentChildren(t){
     }
     t.children = t.children.filter( function(e){ return e.id!=-1; });
     if(t.parent!=null && t.parent.length>0){
+
+        for(let i=0; i<t.parent.length; i++){
+            t.parent[i].children = t.parent[i].children.filter( function(e){ return e.id!=-1; });
+        }
+        /*
         t.parent[0].children = t.parent[0].children.filter( function(e){ return e.id!=-1; });
         if(t.parent.length>1)
             t.parent[1].children = t.parent[1].children.filter( function(e){ return e.id!=-1; });
+        */
     } 
     return;
 }
@@ -1009,7 +1038,7 @@ function VDPfirstWalk(t){
     }
     VDPfirstWalk(t.children[0]);
     //create sibling in contour minimal vertical coordinate and index list
-    var ih = VDPupdateIYL(VDPbottom(t.children[0].subtree.el), 0, null);
+    let ih = VDPupdateIYL(VDPbottom(t.children[0].subtree.el), 0, null);
 
     for(var i=1; i< t.children.length; i++){
         VDPfirstWalk(t.children[i]);
@@ -1036,6 +1065,11 @@ function VDPsetExtremes(t){
 }
 
 function VDPseparate(t, i, ih){
+
+    if(ih == null){
+       //console.log("wait i "+i+ " node "+t);
+    }
+
     //right contour node of left sibling and its sum of modifier.
     var sr = t.children[i-1];
     var mssr = sr.subtree.mod;
@@ -1044,14 +1078,26 @@ function VDPseparate(t, i, ih){
     var mscl = cl.subtree.mod;
 
     while(sr!=null && cl!= null){
-        if(VDPbottom(sr) > ih.lowY )
+        if(ih==null){ 
+            if(state.debug) console.log("VDP ERR 1");
+        }else
+        //if(ih.low==undefined || VDPbottom(sr) > ih.lowY){
+        if(VDPbottom(sr) > ih.lowY){
+            if(ih.nxt == null){
+                console.log("ih.nxt is null; i "+i+" lvl "+t.data.height+" node ",t);
+            }
             ih = ih.nxt;
+            //ih = ih.low==undefined ? null : ih.nxt;
+        }
+
         //how far to the left of the right side of r is the left side of cl?
         var dist = (mssr + sr.subtree.prelim + sr.subtree.w)-(mscl+cl.subtree.prelim);
         if(dist > 0){
             mscl += dist;
             if(ih==null){ 
-                if(state.debug) console.log("VDP ERR");
+                
+                if(state.debug) console.log("VDP ERR 2 - i "+i+"lvl "+t.data.height+" t ",t);
+               // VDPmoveSubtree(t, i, i-1, dist);
             }else
                 VDPmoveSubtree(t, i, ih.index, dist);
         }
@@ -1337,7 +1383,6 @@ function loadGraphJSON(){
             
             var file = input.files[0];
             readFileContent(file).then(content => {
-                debugger;
                 parseGraphJSON(content);
             });
         }
@@ -1479,6 +1524,7 @@ exports.setBinary = setBinary;
 exports.setLinearEdges = setLinearEdges;
 exports.setCircleBlocks = setCircleBlocks;
 exports.setDragAndZoom = setDragAndZoom;
+exports.setNodeSpacing = setNodeSpacing;
 exports.currentSelectedNode = currentSelectedNode;
 exports.getAvailableOperators = getAvailableOperators;
 exports.storeGraphJSON = storeGraphJSON; 
@@ -1488,6 +1534,7 @@ exports.setAlternativeAlgorithm = setAlternativeAlgorithm;
 exports.triggerAlternativeAlgorithm = triggerAlternativeAlgorithm;
 exports.clearGraph = clearGraph;
 exports.getNextNodeId = getNextNodeId;
+
 
 // from d3.js
 //Object.defineProperty(exports, '__esModule', { value: true });

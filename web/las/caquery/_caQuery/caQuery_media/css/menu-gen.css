@@ -2,22 +2,20 @@
 body, html, section#content{
 	height:100%;
 }
-section#central{
-    height:45em;
+section#central, article#riquadro{
+    /*height:45em;*/
+    height:95%;
 }
 
-article#riquadro{
-	height:45em;
-}
-
+/*article#riquadro svg*/
 #riquadro h3{
     height:2em;
 }
 
 article#canvas{
     width:100%;
-    height:40.8em;
-    
+    height:93%;
+    /*height:40.8em;*/
 }
 
 /* for the images in the tab buttons*/
@@ -259,8 +257,11 @@ article#blockparams {
     width:450px;
 }
 #tinput-name, #tinput-descr{
-    position:absolute;
-    right:29px;
+    /*width:10em;
+    position:relative;
+    right:0px;*/
+    /*position:absolute;
+    right:29px;*/
 }
 
 p.tmp_msg{
@@ -280,3 +281,14 @@ p.tmp_msg{
     z-index: 1075; /* Specify a stack order in case you're using a different order for other elements */
     cursor: pointer; /* Add a pointer on hover */
 }
+
+/*overwrite bootstrap style*/
+body{
+    font-family: "Lucida Grande","DejaVu Sans","Bitstream Vera Sans",Verdana,Arial,sans-serif;
+    
+}
+header h1{ 
+    font-weight:bold;
+    display:inline;
+    vertical-align:bottom;
+    }
