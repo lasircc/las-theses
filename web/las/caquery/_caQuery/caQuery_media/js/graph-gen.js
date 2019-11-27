@@ -13,6 +13,7 @@
     
 }(this, (function(exports, d3){	'use strict';
 
+// GGEN is a library in development, code is still to be cleaned and optimized.
 var version = "1.0.0";
 
 // Obtain basic information about document and window
@@ -42,12 +43,13 @@ var constants =  {
     draggableGraph: true,
     zoomableGraph: false,
     zoomScale: [0.7,3],
-    start: { class:"strt-nd", width:60, height:60, deletable:false, draggable:false,
+    start: { class:"strt-nd", width:50, height:50, deletable:false, draggable:false,
             clickable:true, customFunction1Enabled: true },
-    end: { class:"strt-nd", width:60, height:60, deletable:true, draggable:false,
+    end: { class:"strt-nd", width:50, height:50, deletable:true, draggable:false,
             clickable:true,singleInput:false, customFunction1Enabled: true, 
             nodeSingleParent:true},
-    block: { class:"block", width:240, height:160, marginl:10, marginr:10,
+    block: { class:"block", width:180, height:120, marginl:10, marginr:10, //width:240, height:160
+            titleMaxChars:14,
             iconsize:25, icon1:"fas fa-cog", icon2:"fas fa-times-circle",
             deletable:true, draggable:false, clickable:true, singleInput:true,
             customFunction1Enabled:true, customFunction2Enabled:true,
@@ -63,7 +65,7 @@ var state = {
     endNode: null,
     currentID: 0,
     graphVersion:0,
-    debug:true 
+    debug:false 
 };
 
 var settings = null;
@@ -408,14 +410,16 @@ if(state.debug){
                 .classed(constants.clickableClass, function(){
                     if(constants.block.clickable==true) return true;
                     else return false;
-                }).on('click', function(d){ return customBlockFunction3(d);});
-        blks_en.append('text')
+                }).on("click", function(d){ return customBlockFunction3(d);});
+
+        blks_en.append("text")
             .attr("class", "node-title")
             .attr("font-family","sans-serif")
             .attr("font-size","0px")
             .attr("fill","steelblue")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline","central");
+
         //append icon1 to node block and give it custom functions
         blks_en.append("text")        // Append a text element
             .attr("class", function(){ return constants.block.icon1; })  // Give it the font-awesome class
@@ -507,7 +511,9 @@ if(state.debug){
            });
         blks_tr.select('text')
            .attr("font-size","20px")
-           .text(function(d){ return d.title});        
+           .text(function(d){ 
+                return d.title;
+            });        
     }else{
         //blocks selection entering transition (applied to the group)
         blks_tr.attr("transform", function(d) {
@@ -520,7 +526,10 @@ if(state.debug){
             .attr("font-size","20px")
             .attr("x", function(d){ return d.size.width/2; })
             .attr("y", function(d){ return d.size.height/2; })
-            .text(function(d){ return d.title});
+            .text(function(d){
+                return trimText(d.title,constants.block.titleMaxChars); 
+                //return d.title;
+            });
         blks_tr.select('text.fa-cog')
             .attr("font-size", function(d){ var v=d.size.iconsize; return v.toString(); })
             .attr("x", function(d){ return d.size.iconsize; })
@@ -1019,9 +1028,7 @@ function VDPtreeLayout(t){
     if(state.debug) console.log("\t ---- VDP alg -----");
     VDPfirstWalk(t);
 
-    //FUNCTIONING SECOND WALK
     if(state.debug) console.log("\t ---- second walk -----");
-    
     VDPsecondWalk(t,0);
 }
 
@@ -1066,9 +1073,9 @@ function VDPsetExtremes(t){
 
 function VDPseparate(t, i, ih){
 
-    if(ih == null){
+    //if(ih == null){
        //console.log("wait i "+i+ " node "+t);
-    }
+    //}
 
     //right contour node of left sibling and its sum of modifier.
     var sr = t.children[i-1];
@@ -1094,9 +1101,8 @@ function VDPseparate(t, i, ih){
         var dist = (mssr + sr.subtree.prelim + sr.subtree.w)-(mscl+cl.subtree.prelim);
         if(dist > 0){
             mscl += dist;
-            if(ih==null){ 
-                
-                if(state.debug) console.log("VDP ERR 2 - i "+i+"lvl "+t.data.height+" t ",t);
+            if(ih==null){   
+                //if(state.debug) console.log("VDP ERR 2 - i "+i+"lvl "+t.data.height+" t ",t);
                // VDPmoveSubtree(t, i, i-1, dist);
             }else
                 VDPmoveSubtree(t, i, ih.index, dist);
@@ -1493,6 +1499,12 @@ function getNextNodeId(){
     return state.currentID+1;
 }
 
+// manage text ellipses
+function trimText(text, threshold) {
+    if (text.length <= threshold) return text;
+    return text.substr(0, threshold).concat("...");
+}
+
 //variables and method that shouldn't be exposed
 //they are exposed just for debugging purpose
 //exports.settings = settings;
@@ -1534,7 +1546,6 @@ exports.setAlternativeAlgorithm = setAlternativeAlgorithm;
 exports.triggerAlternativeAlgorithm = triggerAlternativeAlgorithm;
 exports.clearGraph = clearGraph;
 exports.getNextNodeId = getNextNodeId;
-
 
 // from d3.js
 //Object.defineProperty(exports, '__esModule', { value: true });

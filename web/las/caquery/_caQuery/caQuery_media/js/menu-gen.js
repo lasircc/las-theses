@@ -337,6 +337,7 @@ var f_filter = function buildFilterModal(node){
     filtertab += '</div>';
     outputtab += '</div>';
 
+    $('#filter-modal .modal-title').html('Configure: '+node.title);
     $('#filter-modal .modal-body').empty();
     $('#filter-modal .modal-body').append(tabbutton);
     $('#filter-modal .modal-body').append('<div id="tabs" class="tab-content"></div>');
