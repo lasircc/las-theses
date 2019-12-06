@@ -3054,6 +3054,13 @@ $(document).ready(function(){
     $("#definetempl-modal #confirm").on("click", submitTemplate);
     $("#definetempl-modal #cancel").click(backToDesign);
 
+    //ZOOM
+    $("a#zoomIn").on('click', d=>{
+        ggen.zoomIn();
+    });
+    $("a#zoomOut").on('click', d=>{
+        ggen.zoomOut();
+    });
 
     //initialize template and GB tabs
     $("#templconfigtabs").tabs();
@@ -3105,14 +3112,13 @@ $(document).ready(function(){
         $("#message-modal .modal-title").append("Help");
         $("#message-modal .modal-body").empty();
         $("#message-modal .modal-body").append('<p>'
-            +'Choose a button from the <b>Entities</b> panel, then move the cursor on the <b>'
-            +'Dataflow Drawing</b> area. Click anywhere in the area and a query block will appear.'
-            +'<br><br>Place all the blocks you want. You can destroy a block by clicking on '
-            +'<span class="ui-icon ui-icon-closethick" style="position: relative; top: 3px"></span>.'
-            +' Click on <span class="ui-icon ui-icon-wrench" style="position: relative; top: 3px">'
-            +'</span> to open a dialog box with the filtering parameters.<br><br>'
-            +'You can connect two blocks by dragging a terminal over another terminal,'
-            +' from output to input. Some blocks cannot be connected together. Before clicking'
+            +'Click on the start node to insert <b>Entities</b> in the <b>'
+            +'Dataflow Drawing</b> area.<br> Click on the black connettor at the bottom of a block.'
+            +'to chose the next <b>Entity/Operator</b><br> You can destroy a block (and all its subtree) by clicking on '
+            +'<i class="fas fa-times-circle"></i>.'
+            +' <br> Click on <i class="fas fa-cog"></i>'
+            +' to open a dialog box with the filtering parameters.<br>'
+            +'Before clicking'
             +' <b>Submit</b>, make sure that all the blocks are connected, including Start and End.'
             +'</p> '      
         );

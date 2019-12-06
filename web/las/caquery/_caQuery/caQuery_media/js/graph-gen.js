@@ -41,8 +41,8 @@ var constants =  {
     circleNodeClass:"circlenode",
     binaryGraph:false,
     draggableGraph: true,
-    zoomableGraph: false,
-    zoomScale: [0.7,3],
+    zoomableGraph: true, //false
+    zoomScale: [0.5,5],
     start: { class:"strt-nd", width:50, height:50, deletable:false, draggable:false,
             clickable:true, customFunction1Enabled: true },
     end: { class:"strt-nd", width:50, height:50, deletable:true, draggable:false,
@@ -65,7 +65,8 @@ var state = {
     endNode: null,
     currentID: 0,
     graphVersion:0,
-    debug:false 
+    debug:false,
+    zoom:null
 };
 
 var settings = null;
@@ -136,6 +137,18 @@ function setTrimText(trimtrue, chars){
         constants.block.trimtext=false;
     if(chars!=undefined && Number.isInteger(chars))
         constants.block.titleMaxChars=chars;
+}
+
+function zoomIn(){
+    var zoom = state.zoom;
+    var svg = d3.select("svg");
+    svg.transition().call(zoom.scaleBy, 1.5)
+}
+
+function zoomOut(){
+    var zoom = state.zoom;
+    var svg = d3.select("svg");
+    svg.transition().call(zoom.scaleBy, 0.5)
 }
 
 function setBinary(binary=true){
@@ -212,10 +225,24 @@ function initCanvas(container="default"){
     var svgG = svg.append("g").classed(constants.graphClass, true);
 
     //panning and zoom
-    var scaleExt =[1,1];
+    var scaleExt = [1,1];
     if(constants.zoomableGraph) scaleExt =constants.zoomScale;
+
+   //svg call zoom
+   state.zoom = d3.zoom()
+      .scaleExtent(scaleExt) //[0.8, 20]
+      .on("zoom", d =>{svgG.attr("transform", d3.event.transform);});
+   svg.call(state.zoom);
+
+    /*
+    state.zoom = d3.zoom().scaleExtent(scaleExt);
     if( constants.draggableGraph){
-        svg.call(d3.zoom().scaleExtent(scaleExt)
+
+        //svgG.style("transform-origin", "50% 50% 0");
+        svg.call(
+            state.zoom
+            //.translateExtent([scaleExt,scaleExt])
+            .extent([[0, 0], [canvaswidth, canvasheight]])
             .on('start.mousedown', function(){
                 //svg.classed("dragging",true);
             }).on('zoom', function () {
@@ -223,7 +250,9 @@ function initCanvas(container="default"){
             }).on('end', function(){
                 //svg.classed("dragging",false);
             }));
+            
     }
+    */
 
     // svg nodes and edges groups
     paths = svgG.append("g")
@@ -1550,6 +1579,11 @@ function trimText(text, threshold) {
     return text.substr(0, threshold).concat("...");
 }
 
+//return true if node end is present
+function checkEndPresence(){
+    return state.endNode==null ? false : true;
+}
+
 //variables and method that shouldn't be exposed
 //they are exposed just for debugging purpose
 //exports.settings = settings;
@@ -1593,6 +1627,9 @@ exports.clearGraph = clearGraph;
 exports.getNextNodeId = getNextNodeId;
 exports.setNodeSize = setNodeSize;
 exports.setTrimText = setTrimText;
+exports.checkEndPresence = checkEndPresence;
+exports.zoomIn = zoomIn;
+exports.zoomOut = zoomOut;
 
 // from d3.js
 //Object.defineProperty(exports, '__esModule', { value: true });
