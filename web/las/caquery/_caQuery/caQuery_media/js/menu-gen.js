@@ -1681,9 +1681,9 @@ function restoreNodeRecursive(i, parent, queryGraph){
              if(    queryGraph[i].button_cat=="op" &&
                     queryGraph[i].button_id==6 && //template
                     templates[ queryGraph[i].template_id].inputs.length==4)
-                var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass="operators", 4);
+                var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass={nodeclass:"operators"}, 4);
             else
-                var node = ggen.addNode(type="operator", title=name, parent=parent, nodeclass="operators");
+                var node = ggen.addNode(type="operator", title=name, parent=parent, nodeclass={nodeclass:"operators"});
              node.data = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id] : templates[queryGraph[i].template_id];
              node.config = queryGraph[i];     
         }else return;
@@ -1693,7 +1693,7 @@ function restoreNodeRecursive(i, parent, queryGraph){
         
         //operator with one input
         let name = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id].name : templates[queryGraph[i].template_id].name;
-        var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass="operators");
+        var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass={nodeclass:"operators"});
         node.data = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id] : templates[queryGraph[i].template_id];
         node.config = queryGraph[i];
 
@@ -1701,7 +1701,7 @@ function restoreNodeRecursive(i, parent, queryGraph){
 
         var nodeclass = qent[queryGraph[i].button_id].dslabel;
         //if qent add new node and update data and config
-        var node = ggen.addNode(type="block", title=qent[queryGraph[i].button_id].name, parent=parent, nodeclass=nodeclass);
+        var node = ggen.addNode(type="block", title=qent[queryGraph[i].button_id].name, parent=parent, nodeclass={nodeclass:nodeclass});
         node.data=qent[queryGraph[i].button_id];
         node.config=queryGraph[i];
     }
@@ -3384,7 +3384,7 @@ $(document).ready(function(){
 
                 //insert node (with the exception of templates and end)
                 if(insertNode)        
-                    var n1 = ggen.addNode(type=type, title=name, parent = node, nodeclass=nodeclass);
+                    var n1 = ggen.addNode(type=type, title=name, parent = node, nodeclass = {nodeclass:nodeclass});
                 if(insertNode && n1!=undefined){
                     n1.data = nodedata;
                     n1.config = nodeconfig;
@@ -3420,9 +3420,9 @@ $(document).ready(function(){
             };
             var nodeclass = "operators";
             if(temp.inputs.length==4)
-                var n1 = ggen.addNode(type=type, title=temp.name, parent=node, nodeclass=nodeclass, temp.inputs.length);
+                var n1 = ggen.addNode(type=type, title=temp.name, parent=node, nodeclass={nodeclass:nodeclass}, temp.inputs.length);
             else
-                var n1 = ggen.addNode(type=type, title=temp.name, parent=node, nodeclass=nodeclass);
+                var n1 = ggen.addNode(type=type, title=temp.name, parent=node, nodeclass={nodeclass:nodeclass});
 
             nodeconfig.id=n1.id;
             nodeconfig.w_in.push(node);
@@ -3825,6 +3825,7 @@ $(document).ready(function(){
     
 
 });
+
 
 
 
