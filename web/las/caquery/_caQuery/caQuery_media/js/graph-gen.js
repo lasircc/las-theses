@@ -48,7 +48,7 @@ var constants =  {
     end: { class:"strt-nd", width:50, height:50, deletable:true, draggable:false,
             clickable:true,singleInput:false, customFunction1Enabled: true, 
             nodeSingleParent:true},
-    block: { class:"block", width:240, height:160, marginl:10, marginr:10, //width:180, height:120
+    block: { class:"block", width:180, height:120, marginl:10, marginr:10, //width:240, height:160
             titleMaxChars:14, trimtext:false,
             iconsize:25, icon1:"fas fa-cog", icon2:"fas fa-times-circle",
             deletable:true, draggable:false, clickable:true, singleInput:true,
@@ -130,12 +130,12 @@ function setNodeSize(size=null,type="block"){
 }
 
 function setTrimText(trimtrue, chars){
-    if(trimtrue==true && chars!=undefined && Number.isInteger(chars)){
+    if(trimtrue==true )
         constants.block.trimtext=true;
-        constants.block.titleMaxChars=chars;
-    }else if(trimtrue==false){
+    else if(trimtrue==false)
         constants.block.trimtext=false;
-    }
+    if(chars!=undefined && Number.isInteger(chars))
+        constants.block.titleMaxChars=chars;
 }
 
 function setBinary(binary=true){
