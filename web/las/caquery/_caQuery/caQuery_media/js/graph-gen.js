@@ -1062,6 +1062,15 @@ function removeNode(t){
     updateGraph();
 }
 
+function removeArc(nodesrc, nodedst){
+    if(nodesrc==null||nodedst==null){
+        if(state.debug) console.log(" -- - ERR removearc -- -");
+        return;
+    }
+    edges = edges.filter( e=>{ return !(e.src.id==nodesrc.id && e.dst.id==nodedst.id) });
+    updateGraph();
+}
+
 function connectNodeToEnd(n){
 
     if(state.debug) console.log("-- connect to end ",n);
@@ -1609,6 +1618,7 @@ exports.initCanvas = initCanvas;
 exports.addNode = addNode;
 exports.addArc = addArc;
 exports.removeNode = removeNode;
+exports.removeArc = removeArc;
 exports.connectNodeToEnd = connectNodeToEnd;
 exports.setCustomFunction = setCustomFunction;
 exports.setBinary = setBinary;
