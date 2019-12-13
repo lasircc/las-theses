@@ -292,3 +292,21 @@ header h1{
     display:inline;
     vertical-align:bottom;
     }
+
+/*filters*/
+
+text.filteron{
+    fill:rgb(10, 226, 10);
+    fill-opacity:1;
+    stroke:rgba(0, 0, 0, .7);
+    /*-webkit-filter: drop-shadow( 3px 3px 2px rgba(0, 0, 0, .7));
+    filter: drop-shadow( 3px 3px 2px rgba(0, 0, 0, .7));*/
+}
+text.filteroff2{
+    fill:rgb(248, 100, 1);
+    fill-opacity:1;
+    stroke:rgba(0, 0, 0, .7);
+}
+text.notconfigurable{
+    visibility:hidden;
+}

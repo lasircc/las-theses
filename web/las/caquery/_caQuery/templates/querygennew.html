@@ -84,8 +84,11 @@
         console.log(" NEW -query gen loaded!"  );
 
         // init GGEN graph generator
-        ggen.initCanvas('#canvas')
         ggen.setTrimText(true);
+        //ggen.setDrag(false);
+        //ggen.setZoom(true,null,[0.2,10]);
+        //ggen.setMultipleNodesConnectedToEnd(true);
+        ggen.initCanvas('#canvas')
         n0 = ggen.addNode(type="start", title="+");
 
 

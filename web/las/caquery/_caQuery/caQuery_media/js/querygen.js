@@ -1361,6 +1361,7 @@ var QueryGen = {
                     }
 
                     if (QueryGen.getGraphNode(block_id).parameters.length > 0) {
+                        debugger;
                         $("p#box"+block_id).children("span#led").removeClass("filteroff").addClass("filteron");
                     } else {
                         $("p#box"+block_id).children("span#led").removeClass("filteron").addClass("filteroff");
@@ -1411,7 +1412,6 @@ var QueryGen = {
                     }
                 );
 
-                
                 if (qent[button_id].hasWG==true){
                     // insert selected wg
                     for (var p in qent[button_id].filters ){

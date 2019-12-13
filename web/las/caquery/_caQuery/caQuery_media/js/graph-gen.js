@@ -14,7 +14,7 @@
 }(this, (function(exports, d3){	'use strict';
 
 // GGEN is a library in development, code is still to be cleaned and optimized.
-var version = "1.0.1";
+var version = "1.0.2";
 
 // Obtain basic information about document and window
 var docEl = document.documentElement,
@@ -43,10 +43,11 @@ var constants =  {
     draggableGraph: true,
     zoomableGraph: true, //false
     zoomScale: [0.5,5],
+    zoomStep:0.5,
     start: { class:"strt-nd", width:50, height:50, deletable:false, draggable:false,
             clickable:true, customFunction1Enabled: true },
     end: { class:"strt-nd", width:50, height:50, deletable:true, draggable:false,
-            clickable:true,singleInput:false, customFunction1Enabled: true, 
+            clickable:true, customFunction1Enabled: true, 
             nodeSingleParent:true},
     block: { class:"block", width:180, height:120, marginl:10, marginr:10, //width:240, height:160
             titleMaxChars:14, trimtext:false,
@@ -139,16 +140,8 @@ function setTrimText(trimtrue, chars){
         constants.block.titleMaxChars=chars;
 }
 
-function zoomIn(){
-    var zoom = state.zoom;
-    var svg = d3.select("svg");
-    svg.transition().call(zoom.scaleBy, 1.5)
-}
-
-function zoomOut(){
-    var zoom = state.zoom;
-    var svg = d3.select("svg");
-    svg.transition().call(zoom.scaleBy, 0.5)
+function setMultipleNodesConnectedToEnd(dec=true){
+    constants.end.nodeSingleParent = dec==true ? false : dec==false ? true : constants.end.nodeSingleParent;
 }
 
 function setBinary(binary=true){
@@ -173,11 +166,25 @@ function setCircleBlocks(circle=true){
     settings.block.shape= circle==true ? "circle" : "rect";
 }
 
-function setDragAndZoom(draggable, zoomable){
-    //if(draggable==true || draggable==false)
+function setDrag(draggable=true){
     constants.draggableGraph = draggable==true ? true : draggable==false ? false : constants.draggableGraph;
-    //if(zoomable==true || zoomable==false)
+}
+
+function setZoom(zoomable=true, step=[], extent=[]){
+    // if zoomable = true => also draggable MUST be true
     constants.zoomableGraph = zoomable==true ? true : zoomable==false ? false : constants.zoomableGraph;
+    if(zoomable==true){
+        if(constants.draggableGraph==false){
+            constants.draggableGraph = true;
+            //console.log("- WARNING: if the graph is zoomable, it IS also draggable by default!");
+        }
+        if(step!=null && typeof step=='number' && step>0 && step<1){
+          constants.zoomStep = step;  
+        }
+        if(extent.length==2 && extent[0]>0 && extent[1]>=extent[0]){
+            constants.zoomScale=extent;
+        }
+    }
 }
 
 function setNodeSpacing(offsetX, offsetY){
@@ -185,6 +192,18 @@ function setNodeSpacing(offsetX, offsetY){
     constants.offsety = offsetY;
     constants.block.marginl = offsetX/2;
     constants.block.marginr = offsetX/2;
+}
+// functional ZOOM
+function zoomIn(){
+    var zoom = state.zoom;
+    var svg = d3.select("svg");
+    svg.transition().call(zoom.scaleBy, (constants.zoomStep+1))
+}
+
+function zoomOut(){
+    var zoom = state.zoom;
+    var svg = d3.select("svg");
+    svg.transition().call(zoom.scaleBy, (1-constants.zoomStep))
 }
 
 function currentSelectedNode(node=null){
@@ -226,33 +245,14 @@ function initCanvas(container="default"){
 
     //panning and zoom
     var scaleExt = [1,1];
-    if(constants.zoomableGraph) scaleExt =constants.zoomScale;
+    if(constants.zoomableGraph) scaleExt = constants.zoomScale; 
 
-   //svg call zoom
-   state.zoom = d3.zoom()
-      .scaleExtent(scaleExt) //[0.8, 20]
-      .on("zoom", d =>{svgG.attr("transform", d3.event.transform);});
-   svg.call(state.zoom);
-
-    /*
-    state.zoom = d3.zoom().scaleExtent(scaleExt);
-    if( constants.draggableGraph){
-
-        //svgG.style("transform-origin", "50% 50% 0");
-        svg.call(
-            state.zoom
-            //.translateExtent([scaleExt,scaleExt])
-            .extent([[0, 0], [canvaswidth, canvasheight]])
-            .on('start.mousedown', function(){
-                //svg.classed("dragging",true);
-            }).on('zoom', function () {
-                svgG.attr("transform", d3.event.transform);
-            }).on('end', function(){
-                //svg.classed("dragging",false);
-            }));
-            
-    }
-    */
+    //svg call zoom
+    state.zoom = d3.zoom()
+        .scaleExtent(scaleExt) //[0.8, 20]
+        .on("zoom", d =>{svgG.attr("transform", d3.event.transform);});
+    if(constants.draggableGraph)
+        svg.call(state.zoom);
 
     // svg nodes and edges groups
     paths = svgG.append("g")
@@ -373,7 +373,7 @@ function updateGraph(){
 
     //give each new element a personalized class
     el_en.each(function(d) {
-        this.classList.add("node"+d.id);
+        this.classList.add("blk"+d.id);
         if(d.class.nodeclass!=undefined)
             this.classList.add(d.class.nodeclass);
       });
@@ -1624,8 +1624,10 @@ exports.setCustomFunction = setCustomFunction;
 exports.setBinary = setBinary;
 exports.setLinearEdges = setLinearEdges;
 exports.setCircleBlocks = setCircleBlocks;
-exports.setDragAndZoom = setDragAndZoom;
+exports.setDrag = setDrag;
+exports.setZoom = setZoom;
 exports.setNodeSpacing = setNodeSpacing;
+exports.setMultipleNodesConnectedToEnd = setMultipleNodesConnectedToEnd;
 exports.currentSelectedNode = currentSelectedNode;
 exports.getAvailableOperators = getAvailableOperators;
 exports.storeGraphJSON = storeGraphJSON; 

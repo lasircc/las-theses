@@ -1,9 +1,7 @@
 
 'use strict';
 //add custom functions for building and opening the menu modal dialog 
-console.log('menu-gen loaded!');
-
-//TODO
+//console.log('menu-gen loaded!');
 //global emulated variables
 /*var workingGroupsList = ["admin"];
 var autocomplete_api_url = "/mdam/api/autocomplete/";
@@ -954,7 +952,16 @@ function insertFilterEntity(node){
                                         --cnt;
                                     }
                                     else{
-                                        alert('You should select at least one WG');
+                                        $("#message-modal .modal-title").empty();
+                                        $("#message-modal .modal-title").append("Alert");
+                                        $("#message-modal .modal-body").empty();
+                                        $("#message-modal .modal-body").prepend('You should select at least one WG');
+                                        $("#message-modal #cancel").show();
+                                        $("#myoverlay").css("display","block");
+                                        $("#message-modal").attr("data-backdrop","false");
+                                        $("#message-modal").modal("show");
+                                        $(".modal-backdrop").hide();
+                                        //alert('You should select at least one WG');
                                         $(this).prop('checked', true);
                                     }
                                 $("#tabs #cnt"+index).attr("data-count_val", cnt);
@@ -1439,7 +1446,9 @@ function buildGBModal(node) {
     $("#gb-modal").data("outs", $.extend(true, {}, o));
    
     // restore previous group-by entity
+    
     var old_gb_attr = node.config.gb_entity;
+    
     if (old_gb_attr) {
         $("#gb-modal select#selattr").val(old_gb_attr);
     }
@@ -1447,7 +1456,7 @@ function buildGBModal(node) {
     // restore previous filters (if any)
     var next_uid = 0;
     var params = node.config.parameters;
-    var old_gb_attr;
+    //var old_gb_attr;
     for (var i = 0; i < params.length; ++i) {
         $("#gb-modal #gbitemadd-flt").click();
         var p = $("#gb-modal #gbconfig-flt-list p.gbitem").last();
@@ -1639,7 +1648,8 @@ function getGraphSize(){
 
 // ---------------------------------------___LOAD LAST QUERY___
 function restoreNodeRecursive(i, parent, queryGraph){
-    
+    var configurable, hasWG;
+
     if(i!="end") i = parseInt(i);
     //console.log("-------> restore node ", i);
     if(i=="end"){
@@ -1696,23 +1706,84 @@ function restoreNodeRecursive(i, parent, queryGraph){
         var node = ggen.addNode(type="block", title=name, parent=parent, nodeclass={nodeclass:"operators"});
         node.data = ops[queryGraph[i].button_id].name != "Template" ? ops[queryGraph[i].button_id] : templates[queryGraph[i].template_id];
         node.config = queryGraph[i];
+        configurable = ops[queryGraph[i].button_id].configurable;
 
     }else if(queryGraph[i].button_cat=="qent"){
 
+        hasWG = qent[queryGraph[i].button_id].hasWG;
         var nodeclass = qent[queryGraph[i].button_id].dslabel;
         //if qent add new node and update data and config
         var node = ggen.addNode(type="block", title=qent[queryGraph[i].button_id].name, parent=parent, nodeclass={nodeclass:nodeclass});
         node.data=qent[queryGraph[i].button_id];
         node.config=queryGraph[i];
+        configurable = true;
+        hasWG = qent[queryGraph[i].button_id].hasWG;
+    }
+
+    if(node!=null && !configurable){
+        $(".blk"+node.id).children("text")[1].classList.add("notconfigurable");
+    }else if(node!=null){
+        //if gb or extend -> class filteroff2 (configuration required)
+        if(node.config.button_id==4 || node.config.button_id==5 || node.config.button_id==7){
+
+            //check if it has filters
+            if(node.config.parameters.length==0){
+                $(".blk"+node.id).children("text")[1].classList.remove("filteron");
+                $(".blk"+node.id).children("text")[1].classList.add("filteroff2");
+            }else{
+                $(".blk"+node.id).children("text")[1].classList.remove("filteroff2");
+                $(".blk"+node.id).children("text")[1].classList.add("filteron");
+            }
+
+        }
+    }       
+    
+    if(node!=null && hasWG){
+        for (var p in node.data.filters ){
+            console.log(p)
+            if (node.data.filters[p]['type'] == 7){
+                var paramsWg=new Array();
+                var wgObj= new Object();
+                wgObj['values']=new Array();
+                wgObj['f_id'] = p.toString();       
+                
+                var W = node.data.filters[p].values;
+
+                for (var wj in W){
+                    if (workingGroupsList.indexOf( W[wj][1]) != -1 )
+                        wgObj['values'].push(W[wj][0]);
+                }
+                
+                paramsWg.push(wgObj);
+                var wgSetted = false
+                for (var wj in node.config.parameters){
+                    if (wgObj['f_id'].indexOf( node.config.parameters[wj]['f_id']) != -1 )
+                        wgSetted = true;
+                }
+                
+                if (!wgSetted){
+                    node.config.parameters = paramsWg;
+                }
+
+                if (node.config.parameters.length > 0) {
+                    $(".blk"+node.id).children("text")[1].classList.remove("filteroff");
+                    $(".blk"+node.id).children("text")[1].classList.add("filteron");
+                } else {
+                    $(".blk"+node.id).children("text")[1].classList.remove("filteron");
+                    $(".blk"+node.id).children("text")[1].classList.add("filteroff");
+                }
+            }
+        }
+            
     }
 
     //if node with 4 input and not every input connected => do not call recursive function
     //otherwise
     //call recursive for its child
-    debugger;
+    
     if( node==undefined || (node.config.w_in==4 && node.input.length<4) )
         return;
-    //debugger;
+    
     if( queryGraph[i].w_out!=undefined && queryGraph[i].w_out.length>0
     )
         restoreNodeRecursive(queryGraph[i].w_out[0], node, queryGraph);
@@ -3021,6 +3092,10 @@ $(document).ready(function(){
         $("#myoverlay").css("display","none");
         $(".modal-backdrop").show();
     });
+    $("#message-modal .close").on('click',d=>{
+        $("#myoverlay").css("display","none");
+        $(".modal-backdrop").show();
+    });
     $("#message-modal #confirm").on('click',d=>{
         $("#myoverlay").css("display","none");
         $("#definetempl-modal").modal("hide");
@@ -3166,7 +3241,7 @@ $(document).ready(function(){
 
 
             }else{
-                var name, type, nodedata;
+                var name, type, nodedata, configurable, hasWG;
 
                 var nodeconfig = {
                         button_cat: "",
@@ -3180,6 +3255,7 @@ $(document).ready(function(){
                     };
                  
                 if(selected > 7 ){  //qent
+                    
                     name = qent[selected].name;
                     nodeclass = qent[selected].dslabel;
                     type = 'block';
@@ -3187,6 +3263,8 @@ $(document).ready(function(){
                     nodeconfig.button_cat="qent";
                     nodeconfig.button_id = parseInt(selected);
                     nodeconfig.output_type_id = parseInt(selected);
+                    configurable = true;
+                    hasWG = qent[selected].hasWG;
 
                     //check that Qent can be attached to node
                     // -----------------------
@@ -3244,6 +3322,8 @@ $(document).ready(function(){
                     nodedata = ops[selected];
                     nodeconfig.button_cat="op";
                     nodeconfig.button_id = parseInt(selected);
+                    configurable = ops[selected].configurable;
+
                     if(selected!=4 && selected!=7) //not for GB and Extend
                         nodeconfig.output_type_id = node.config.output_type_id;
                     //nodeconfig.conn_inputs=[];
@@ -3387,16 +3467,64 @@ $(document).ready(function(){
                     
 
                 }
+                var n1;
 
                 //insert node (with the exception of templates and end)
                 if(insertNode)        
-                    var n1 = ggen.addNode(type=type, title=name, parent = node, nodeclass = {nodeclass:nodeclass});
+                    n1 = ggen.addNode(type=type, title=name, parent = node, nodeclass = {nodeclass:nodeclass});
                 if(insertNode && n1!=undefined){
                     n1.data = nodedata;
                     n1.config = nodeconfig;
                 }
-                    
-            
+
+                if(n1!=null && !configurable){
+                    $(".blk"+n1.id).children("text")[1].classList.add("notconfigurable");
+                }else if(n1!=null){
+                    //if gb or extend -> class filteroff2 (configuration required)
+                    if(n1.config.button_id==4 || n1.config.button_id==5 || n1.config.button_id==7){
+                        $(".blk"+n1.id).children("text")[1].classList.remove("filteron");
+                        $(".blk"+n1.id).children("text")[1].classList.add("filteroff2");
+                    }
+                }       
+                
+                if(n1!=null && hasWG){
+                    for (var p in n1.data.filters ){
+                        console.log(p)
+                        if (n1.data.filters[p]['type'] == 7){
+                            var paramsWg=new Array();
+                            var wgObj= new Object();
+                            wgObj['values']=new Array();
+                            wgObj['f_id'] = p.toString();       
+                            
+                            var W = n1.data.filters[p].values;
+
+                            for (var wj in W){
+                                if (workingGroupsList.indexOf( W[wj][1]) != -1 )
+                                    wgObj['values'].push(W[wj][0]);
+                            }
+                            
+                            paramsWg.push(wgObj);
+                            var wgSetted = false
+                            for (var wj in n1.config.parameters){
+                                if (wgObj['f_id'].indexOf( n1.config.parameters[wj]['f_id']) != -1 )
+                                    wgSetted = true;
+                            }
+                            
+                            if (!wgSetted){
+                                n1.config.parameters = paramsWg;
+                            }
+
+                            if (n1.config.parameters.length > 0) {
+                                $(".blk"+n1.id).children("text")[1].classList.remove("filteroff");
+                                $(".blk"+n1.id).children("text")[1].classList.add("filteron");
+                            } else {
+                                $(".blk"+n1.id).children("text")[1].classList.remove("filteron");
+                                $(".blk"+n1.id).children("text")[1].classList.add("filteroff");
+                            }
+                        }
+                    }
+                        
+                }
             }
         }
         $('#entity-modal').modal('hide');
@@ -3411,14 +3539,14 @@ $(document).ready(function(){
         if(selected != undefined){
             var temp = templates[selected];
             var type = "block";
-
+            
             var nodeconfig = {
                 button_cat: "op",
                 button_id: 6,
                 id:-1,
                 output_type_id: temp.output,
                 outputs: temp.outputsList,
-                parameters: [],
+                parameters: temp.parameters.length >0 ? temp.parameters.map(d=>{ return d.src_f_id;}) : [],
                 query_path_id: [undefined],
                 template_id:selected,
                 w_in: [],
@@ -3429,10 +3557,17 @@ $(document).ready(function(){
                 var n1 = ggen.addNode(type=type, title=temp.name, parent=node, nodeclass={nodeclass:nodeclass}, temp.inputs.length);
             else
                 var n1 = ggen.addNode(type=type, title=temp.name, parent=node, nodeclass={nodeclass:nodeclass});
-
+            
+            if(temp.parameters.length >0 ){
+                $(".blk"+n1.id).children("text")[1].classList.remove("filteroff");
+                $(".blk"+n1.id).children("text")[1].classList.add("filteron");
+            } else {
+                $(".blk"+n1.id).children("text")[1].classList.remove("filteron");
+                $(".blk"+n1.id).children("text")[1].classList.add("filteroff");
+            }
             nodeconfig.id=n1.id;
             nodeconfig.w_in.push(node);
-
+            
             if(n1!=undefined){
                 n1.data = temp;
                 n1.config = nodeconfig;
@@ -3441,6 +3576,7 @@ $(document).ready(function(){
         }
 
         $('#template-modal').modal('hide');
+        
       });
  
     $('#filter-modal #confirm').on('click', e =>{
@@ -3551,22 +3687,25 @@ $(document).ready(function(){
  
     node.config.parameters = params;   
 
-    /*
+    
     if (node.config.parameters.length > 0) {
-        $("p#box"+block_id).children("span#led").removeClass("filteroff").addClass("filteron");
+        $(".blk"+node.id).children("text")[1].classList.remove("filteroff");
+        $(".blk"+node.id).children("text")[1].classList.add("filteron");
+        //$("p#box"+block_id).children("span#led").removeClass("filteroff").addClass("filteron");
     } else {
-        $("p#box"+block_id).children("span#led").removeClass("filteron").addClass("filteroff");
+        $(".blk"+node.id).children("text")[1].classList.remove("filteron");
+        $(".blk"+node.id).children("text")[1].classList.add("filteroff");
+        //$("p#box"+block_id).children("span#led").removeClass("filteron").addClass("filteroff");
     }
-*/
+
     // save input
-/*
     var paths = $("#filter-modal #config-in-list input");
     // if previous entity is the same as the current one, then there is no path in the input tab -- this case is handled separately even in the query engine
     if (paths.length > 0) {
         var query_path_id = paths.filter(":checked").val();
         node.config.query_path_id = query_path_id;  
     }
-*/
+
     //save outputs
     var outs = [];
     var selected = Object.values($('#output-selection input:checked'));
@@ -3664,29 +3803,21 @@ $(document).ready(function(){
         }
 
         if (out.length > 0) {
-/*
-            $("p#box"+block_id).children("span#led")
-                               .removeClass("filteroff2")
-                               .addClass("filteron");
-*/
+
+            $(".blk"+node.id).children("text")[1].classList.remove("filteroff2");
+            $(".blk"+node.id).children("text")[1].classList.add("filteron");
             // update output type
-            //QueryGen.setGraphNodeAttr(block_id, "output_type_id", connBType);
-    
             var connBType = node.parent[0].config.output_type_id;
             node.config.output_type_id = connBType;
+
         } else {
 
-/*
-            $("p#box"+block_id).children("span#led")
-                               .removeClass("filteron")
-                               .addClass("filteroff2");
-           // disconnect out wire
-           outTerminal.removeAllWires();
-*/
+            $(".blk"+node.id).children("text")[1].classList.remove("filteron");
+            $(".blk"+node.id).children("text")[1].classList.add("filteroff2");
 
-           // update output type
-            //QueryGen.setGraphNodeAttr(block_id, "output_type_id", undefined);
-
+            // disconnect out wire
+            ggen.removeNode(node.children[0]);
+            // update output type
             node.config.output_type_id = undefined;
             // if template mode is on, close it, since extend block needs configuration
             if (QueryGen.template.in_template) {
@@ -3701,7 +3832,7 @@ $(document).ready(function(){
     $('#gb-modal #confirm').on('click', e =>{
         console.log("confirm Extend modal"); 
         var node = ggen.currentSelectedNode();
-
+        var old_gb_attr = node.config.gb_entity;
         var gb_attr = $('#gb-modal select#selattr').val();
         var gb_cnt = $("#gb-modal input#addnum").val();
         if (gb_cnt == '') {
@@ -3732,17 +3863,23 @@ $(document).ready(function(){
             //QueryGen.setGraphNodeAttr(block_id, "parameters", flt);
 
             if (flt.length > 0) {
-                $("p#box"+node.id).children("span#led").removeClass("filteroff2").addClass("filteron");
+                $(".blk"+node.id).children("text")[1].classList.remove("filteroff2");
+                $(".blk"+node.id).children("text")[1].classList.add("filteron");
+          
                 // save group-by entity
                 //QueryGen.setGraphNodeAttr(block_id, 'gb_entity', gb_attr);
+                
+                node.config.gb_entity = gb_attr;
                 node.config.gb_attr = flt;
-
+                
                 // non serve più: QueryGen.setGraphNodeAttr(block_id, 'connBlock', GUI.getButtonName(connBType));
                 //QueryGen.setGraphNodeAttr(block_id, "output_type_id", parseInt(gb_attr));
                 node.config.output_type_id  = parseInt(gb_attr);
 
             } else {
-                $("p#box"+node.id).children("span#led").removeClass("filteron").addClass("filteroff2");
+                $(".blk"+node.id).children("text")[1].classList.remove("filteron");
+                $(".blk"+node.id).children("text")[1].classList.add("filteroff2");
+          
                 // if template mode is on, close it, since group by block needs configuration
                 if (QueryGen.template.in_template) {
                     backToDesign();
@@ -3793,11 +3930,12 @@ $(document).ready(function(){
                     }
                 }
             }
-            /*
+            
             if (old_gb_attr != gb_attr) {
-                outTerm.removeAllWires();
+                ggen.removeNode(node.children[0]);
+                //outTerm.removeAllWires();
             }
-            */
+            
             // save input
             var query_path_id = $("#gb-modal #gbconfig-in-list input:checked").val();
             //QueryGen.setGraphNodeAttr(block_id, 'query_path_id', query_path_id);
