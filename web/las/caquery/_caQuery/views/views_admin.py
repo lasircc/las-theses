@@ -20,7 +20,7 @@ def createTemplate(request):
         t.name = request.POST['title']
         t.description = request.POST['description']
         conf = json.loads(request.POST['configuration'])
-        print 'conf', conf
+        print '----conf', conf
         t.isTranslator = json.loads(request.POST['isTranslator'])
         t.outputTranslatorsList = json.dumps(bq['end']['translators'])
         

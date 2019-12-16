@@ -289,6 +289,245 @@ def querygen(request):
         
         return HttpResponse(json.dumps({'qid': str(q.pk), 'rid': str(run.pk)}))
 
+
+''' ############ added view to query gen new ############### '''
+
+@laslogin_required      
+@login_required
+@permission_decorator('_caQuery.can_view_MDAM_query_generator')
+def querygennew(request):
+    if request.method == 'GET':
+        title = None
+        description = None
+        g = None
+        q = None
+        template = None
+        tparams = None
+        if 'tqid' in request.GET or 'transid' in request.GET:
+            try:
+                if 'tqid' in request.GET:
+                    template = QueryTemplate.objects.get(pk=request.GET['tqid'])
+                else:
+                    template = QueryTemplate.objects.get(pk=request.GET['transid'])
+                title = template.name
+                description = template.description
+                templateparams = json.loads(template.parameters)
+                templateConf = json.loads(template.configuration)
+                
+
+                tparams = {}
+                for p in templateparams:
+                    print p
+                    i = 0
+                    if not tparams.has_key( p['src_block_id'] ):
+                        tparams[ p['src_block_id'] ] = {}
+                    if p.has_key('src_f_id'):
+                        tparams[ p['src_block_id'] ] [ str(p['bq_par_id']) ] = int(p['src_f_id'])
+                    
+                    else:
+                        if p['type'] == 4:
+                            tparams[ p['src_block_id'] ] [ str(p['bq_par_id']) ] = 'genid'
+                        elif p['type'] == 3:
+                            tparams[ p['src_block_id'] ] [ str(p['bq_par_id']) ] = i
+                            i+=1
+
+
+
+
+                tconf = {}
+
+                print tparams
+                
+                for bid, c in templateConf.items():
+                    tconf[bid] = {'inputs':c['inputs'], 'parameters':{}}
+                    for pid, pconf in c['parameters'].items():
+                        print pid, pconf
+                        if tparams.has_key(bid):
+                            if tparams[bid].has_key(pid):
+                                #if pconf['opt'] != '2':
+                                print 'insert ',  pconf
+                                tconf[bid]['parameters'][ tparams[bid][pid] ] = pconf
+                print 'tconf ', tconf
+
+                query_dict = {
+                    "start":
+                        {
+                            "parameters":None,
+                            "query_path_id":[None],
+                            "w_out":[], # fill
+                            "offsetX":0,
+                            "offsetY":0
+                        },
+                    "end":
+                        {
+                            "parameters":None,
+                            "query_path_id":[None],
+                            "w_in":[ unicode(template.outputBlockId)],
+                            "offsetX":0,
+                            "offsetY":0,
+                            "translators": json.loads(template.outputTranslatorsList)
+                        }
+                    }
+
+                g = json.loads(template.baseQuery)
+                maxBid = max([int(k) for k in g.keys()] ) +1
+                print maxBid
+                g.update(query_dict)
+
+                
+                if 'transid' in request.GET:
+                    newBlock = { unicode(maxBid):
+                        {
+                            "parameters":[],
+                            "button_cat": "qent",
+                            "query_path_id":None,
+                            "outputs":[],
+                            "w_out":[], # fill
+                            "offsetX":50,
+                            "offsetY":50, 
+                            "w_in": ["start"], 
+                            "button_id": template.translatorInputType.id,
+                            "output_type_id": template.translatorInputType.id,
+                        }
+                    }
+
+                    print 'newBlock ', newBlock
+                    
+                    for bid, bInfo in g.items():
+                        print bid, bInfo
+                        if bInfo.has_key('w_in'):
+                            if bInfo['w_in'][0] == 'start':
+                                bInfo['w_in'] = [unicode(maxBid)]
+                                newBlock[unicode(maxBid)]['w_out'] = [ unicode(bid) +'.0']
+                                newBlock[unicode(maxBid)]["query_path_id"] = bInfo['query_path_id']
+                                print newBlock[unicode(maxBid)]['w_out']
+                    print 'newBlock ',newBlock
+                    
+                    g['start']['w_out'] = [unicode(maxBid) +'.0']
+
+                    g.update(newBlock)
+
+                    print g
+                 
+                    
+
+            except Exception, e:
+                print e
+                print "Template not found"
+
+        if 'qid' in request.GET:
+            try:
+                q = SubmittedQuery.objects.get(pk=request.GET['qid'])
+                title = q.title
+                description = q.description
+                g = q.query_graph
+            except:
+                print "Query not found: ", request.GET['qid']
+        try:
+            last_query_id = str(SubmittedQuery.objects.filter(author=request.user.id).order_by("-timestamp").only("id").first().id)
+        except:
+            last_query_id = None
+        ds = []
+        qe = []
+        for x in DataSource.objects.all().order_by('name'):
+            ds.append((x.name.lower().replace(' ', '_'), x))
+            qe.append((x.name.lower().replace(' ', '_'), QueryableEntity.objects.filter(enabled=True,dsTable__in=DSTable.objects.filter(dataSource=x))))
+        
+        resp = {'ds': ds, 'qe': qe, 'ops': Operator.objects.exclude(pk=5).order_by('no'), 'genidtype': GenIDType.objects.all(), 'title': title, 'description': description, 'graph_nodes': json.dumps(g) if g else None, 'last_query_id': last_query_id}
+
+        print 'final graph', g
+
+        if q:
+            resp['qid'] = q.pk
+
+        if 'tqid' in request.GET:
+        #if template:
+            resp['tqid'] = template.pk
+            resp['tparams'] = json.dumps(tconf)
+            #print resp['tparams']
+        if 'transid' in request.GET:
+            resp['transid'] = template.pk
+        
+            
+        response =  render_to_response('querygennew.html', resp, RequestContext(request))
+        # da verificare se funziona appena si crea un template/entita
+        response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+    elif request.method == 'POST':
+        print "Query received:"
+        print request.POST
+        queryTime = datetime.datetime.now()
+
+        title = request.POST['title']
+        description = request.POST['description']
+        g = request.POST['graph_nodes']
+        g = json.loads(g)
+        
+        qid = request.POST['qid']
+        print 'qid', qid
+        if qid != '':
+            qOld = SubmittedQuery.objects.get(pk=qid)
+            query_graph = qOld.query_graph
+            print 'compare query_graph', query_graph != g
+            print query_graph
+            print g
+            if not compareQueryGraph(query_graph, g):
+                print 'generate new subquery'
+                q = createQuery(title, description, queryTime, g, request.user.id)
+            else:
+                print 'use old query ', qOld.pk
+                q = qOld
+        else:
+            q = createQuery(title, description, queryTime, g, request.user.id)
+        
+        print g
+        
+        for x in ['query_headers', 'query_results', 'query_results_global_search', 'query_results_col_search', 'aaData_indices', 'query_results_sort_keys']:
+            if x in request.session:
+                del request.session[x]
+
+        h, b, trans_meta, trans_b, outputEntityId = run_query(g, request.session.session_key)
+
+        #save query
+        q.headers = h
+        q.translators_meta = trans_meta
+        q.has_translators = trans_meta != None
+        q.outputEntityId = outputEntityId
+        q.save()
+        run = QueryRun()
+        run.timestamp = queryTime
+        run.user = request.user.id
+
+        run.results.new_file()
+        run.results.write(json.dumps(b))
+        run.results.close()
+        
+        run.translators_results.new_file()
+        run.translators_results.write(json.dumps(trans_b))
+        run.translators_results.close()
+        
+        
+
+        # update reference fields
+        try:
+            run.save()
+            print 'save run 1'
+            run.update(set__query = q)
+            run.save()
+            print 'update run'
+            q.update(push__runs=run)
+            q.save()
+            print 'update q'
+        except Exception, e:
+            print 'Error ', e
+        
+        
+        
+        return HttpResponse(json.dumps({'qid': str(q.pk), 'rid': str(run.pk)}))
+
+'''#########################'''
+
 def createQuery(title, description, queryTime, g, author):
     q = SubmittedQuery()
     q.title = title

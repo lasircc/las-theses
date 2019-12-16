@@ -26,7 +26,8 @@ RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh \
     && workon venvdj1.7 \
     && pip install --default-timeout=100 -r /las-conf/pip-reqs_1.7.txt"
     
-COPY las /srv/www
+RUN mkdir /srv/www 
+#COPY las /srv/www
 COPY adminScripts /adminScripts
 
 COPY conf/las-ssl.conf /etc/apache2/sites-available/las-ssl.conf

@@ -15,7 +15,7 @@ services:
       - lasmongodb:lasmongodb
       - lasneo4j:lasneo4j
     volumes:
-#      - ./web/las:/srv/www
+      - ./web/las:/srv/www
 #      - ./web/adminScripts:/adminScripts
       - ./web/ssl:/etc/apache2/ssl
       - ./blat:/blat
@@ -25,6 +25,8 @@ services:
       - lasneo4j
       - blat-genome
       - blat-transcriptome
+    extra_hosts:
+      - www.mylas.com:127.0.0.1
 
   lasmysql:
     container_name: lasmysql

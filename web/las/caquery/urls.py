@@ -33,7 +33,9 @@ urlpatterns = patterns('',
     (r'^tablebrowser/$', "_caQuery.views.tablebrowser"),
     (r'^qpaths/$', "_caQuery.views.qpaths"),
 
-    (r'^querygen/$', "_caQuery.views.querygen"),
+    (r'^querygen$', "_caQuery.views.querygen"),
+	(r'^querygennew$', "_caQuery.views.querygennew"),
+
     (r'^createtemplate/$', "_caQuery.views.createTemplate"),
     (r'^results/$', "_caQuery.views.displayresults"),
     (r'^getresultsdata/$', "_caQuery.views.getresults"),

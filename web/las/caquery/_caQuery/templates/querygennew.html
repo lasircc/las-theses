@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+{% load templatefilters %}
+
+{% block title %}Multidimensional Data Manager - NEW - Query Generator{% endblock %}                            
+
+{% block script_ %}
+
+<!-- WireIt CSS -->
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}css/WireIt.css" />
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}css/boxlist.css" />
+
+<!-- YUI -->
+<script type="text/javascript" src="{{MEDIA_URL}}lib/yui/utilities/utilities.js"></script>    
+        
+
+<!-- WireIt -->
+<script type="text/javascript" src="{{MEDIA_URL}}js/WireIt.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/CanvasElement.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/Wire.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/Terminal.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/util/DD.js"></script>
+
+<script src="{{MEDIA_URL}}DataTables-1.9.0/media/js/jquery.dataTables.js"></script>
+
+<script type="text/javascript" src="{{MEDIA_URL}}js/json2.js"></script>
+
+<script type="text/javascript" src="{{MEDIA_URL}}js/inputvalidation.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/genidbuttonmanagement.js"></script>
+
+<script type="text/javascript" src="{{MEDIA_URL}}js/querygen.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/boxlist.js"></script>
+
+
+
+<!--FONT AWESOME-->
+<link rel="stylesheet" href="{{MEDIA_URL}}css/all.css">
+
+
+<!-- BOOTSTRAP -->
+ <!--<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+ -->
+    <link rel="stylesheet" href="{{MEDIA_URL}}css/bootstrap.min.css">
+<script type="text/javascript" src="{{MEDIA_URL}}js/bootstrap.min.js"></script>
+
+<!-- GGEN library -->
+<script src="{{MEDIA_URL}}js/d3.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}js/graph-gen.js"></script>
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}css/graph-gen.css" />
+
+<!-- modal menu -->
+<script type="text/javascript" src="{{MEDIA_URL}}js/menu-gen.js"></script>
+<link rel="stylesheet" href="{{MEDIA_URL}}css/menu-gen.css">
+
+
+<script type="text/javascript" src="{{MEDIA_URL}}js/qent.json?{%now 'YmdHis'%}"></script>
+
+
+
+
+
+<style type="text/css">
+.panelModule{
+    overflow-y: auto;
+    height: 350px;
+    width: 50%;
+}
+</style>
+
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<p id="error">
+    {{  message  }}
+</p>
+{% endif %}
+
+<p id="username" style='display:none;'>{{  user.username  }}</p>
+
+<script>
+
+    $(function() {
+        console.log(" NEW -query gen loaded!"  );
+
+        // init GGEN graph generator
+        ggen.setTrimText(true);
+        //ggen.setDrag(false);
+        //ggen.setZoom(true,null,[0.2,10]);
+        //ggen.setMultipleNodesConnectedToEnd(true);
+        ggen.initCanvas('#canvas')
+        n0 = ggen.addNode(type="start", title="+");
+
+
+    {% if graph_nodes %}
+        $("#query_title").val("{{ title }}");
+        $("#query_description").val("{{ description }}");
+    {% autoescape off %}
+
+        //RELOAD GRAPH 
+        console.log({{ graph_nodes }});
+        loadQueryGraph({{ graph_nodes }});
+
+    {% endautoescape %}
+    
+    {% endif %}
+
+    {% if last_query_id %}
+
+        //RELOAD LAST QUERY
+        // TODO
+        $("a#reload").click(function() {
+            console.log("reload last query");
+            
+            if (getGraphSize() > 2) {
+                confirm ("The current query will be lost. Continue?", "Warning", "Yes", "No", function() {
+                    window.location.href = "{% url _caQuery.views.querygennew %}?qid={{ last_query_id }}"; 
+                });
+            } else {
+                window.location.href = "{% url _caQuery.views.querygennew %}?qid={{ last_query_id }}"; 
+            }
+        });
+    {% endif %}
+
+    });
+
+    var autocomplete_api_url = "{% url autocomplete-api %}";
+    var display_results_url = "{% url _caQuery.views.displayresults %}";
+    var qid = null;
+    {% if qid %}
+        qid = "{{qid}}";
+    {% endif %}
+    var tqid = null;
+    var tparams = null;
+    var transid = null
+    {% if tqid %}
+        tqid = "{{tqid}}";
+        tparams = $.parseJSON('{{tparams|safe}}');
+    {% endif %}
+
+    {% if transid %}
+        transid = "{{transid}}";
+    {% endif %}    
+
+</script>
+
+
+<!----- BOOTSTRAP MODALS & MENUS ----->
+<div class="container-fluid">
+
+
+    <!-- Sidebar  -->
+    <nav id="sidebar" class="navbar bg-light">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="help" ><i class="fas fa-question"></i> Help</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="reload" ><i class="fas fa-redo"></i> Reload Query</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="clearall"><i class="fas fa-trash-alt"></i> Clear Workspace</a>
+            </li>
+            {% if '_caQuery.can_view_MDAM_save_translators' in user.get_all_permissions %}
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="savetransl" ><i class="far fa-save"></i> Save as Translator</a>
+            </li>
+            {%endif%}
+            {% if '_caQuery.can_view_MDAM_save_templates' in user.get_all_permissions %}
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="savetempl" ><i class="far fa-save"></i> Save as Template</a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="titledescr" ><i class="fas fa-info"></i> Title & Description</a>
+            </li>            
+            <li class="nav-item">
+               <a class="nav-link" href="#" id="submit" ><i class="fas fa-file-import"></i> Submit</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="zoomIn" ><i class="fas fa-search-plus"></i></a>
+                <a class="nav-link" href="#" id="zoomOut" ><i class="fas fa-search-minus"></i></a>
+            </li>
+        </ul>
+    </nav>
+           
+    <!-- Entity Selection Modal-->
+    <div class="modal" id="entity-modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Select Entity/Operator</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Selection Modal-->
+    <div class="modal" id="template-modal">
+        <div class="modal-dialog ">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Select Template</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body"></div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Configuration Modal-->
+    <div class="modal" id="filter-modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Select Configuration</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body"></div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" class="btn " id="clearall">Clear</button>
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Extend Configuration Modal-->
+    <div class="modal" id="extend-modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Configure Extend Operator</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <p>Extend the current block with attributes from the following entities:</p>
+                    <p class="valuesovf" id="ent-list" style="height: auto; max-height: 90%"></p>            
+                </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- GB Configuration Modal-->
+    <div class="modal" id="gb-modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Configure Group By Operator</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <p id="groupattr">Group selected entity by:&nbsp;
+                        <select id="selattr"></select>
+                    </p>
+                    <div id="gbconfigtabs">
+                        <ul>
+                            <li><a href="#gbconfig-flt">Filters</a></li>
+                            <li><a href="#gbconfig-out">Outputs</a></li>
+                        </ul>
+                        <div id="gbconfig-flt">
+                            <p>Filter groups by:</p>
+                            <p id="gbitemadd-flt" class="gbitemadd"><span class='gbitemadd'></span></p>
+                            <p class="valuesovf" id="gbconfig-flt-list" style="min-height: 50px"></p>
+                        </div>
+                        <div id="gbconfig-out">
+                            <p>Send the following outputs to the next block:</p>
+                            <p id="gbitemadd-out" class="gbitemadd"><span class='gbitemadd'></span></p>
+                            <p class="valuesovf" id="gbconfig-out-list" style="min-height: 50px"></p>
+                        </div>
+                    </div></div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Extend Configuration Modal-->
+    <div class="modal" id="translator-modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Select Translator(s)</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <p>Please choose one or more translators:</p>
+                    <p class="cfgval valuesovf" id="translatorslist" style="display: block;"></p>                   
+                </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Modal-->
+    <div class="modal" id="message-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Message</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">Message</div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button"  id="cancel"  class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Title&Description Modal-->
+    <div class="modal" id="titledescr-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Insert Title and Description</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <section id="filltext">
+                        <label for="query_title">Title: </label>
+                        <!--<span>Title:</span>-->
+                        <textarea class="form-control form-control-sm." id="query_title" onkeypress="validate2(event)" rows="3"></textarea>
+                        <label for="query_description">Description: </label>
+                        <!--<span>Description:</span>-->
+                        <textarea class="form-control" id="query_description" onkeypress="validate2(event) " rows="3"></textarea>
+                    </section>
+                </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" id="confirm" class="btn btn-success" data-dismiss="modal" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Insert Template Definition Modal-->
+    <div class="modal" id="definetempl-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Template Definition</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                <div id="definetempl" >
+                    <!--<article id="riquadro">-->
+                    <p style="margin-left: 10px">Please define the template parameters</p>
+                    <p id="templbtn" >
+                        <button id="prev-param" class="query_submit">< Previous</button>
+                        <button id="next-param" class="query_submit">Next ></button>
+                    </p>
+                    <!--</article>-->
+                </div>
+                </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" id="cancel" class="btn btn-danger">Cancel</button>
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Template Definition Modal-->
+    <div class="modal" id="context-modal">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                <h4 class="modal-title">Correlate with attribute</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <p class="menu-item">
+                        <input id="menu-item-0" class="menu-item" name="dd" type="radio" value="0" />
+                        <label for="menu-item-0">None</label>
+                    </p>
+                </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                <button type="button" id="confirm" class="btn btn-success" value=null>Confirm</button>
+                </div> 
+            </div>
+        </div>
+    </div>
+        
+</div> <!--end of BOOTSTRAP DIV-->
+
+
+<!-- MAIN HTML -->
+<section id="central">  
+        <article id="riquadro">
+                <h3>Dataflow Drawing</h3>      
+                <article id="canvas" class="Canvas">
+                    <span id='overlay' class='overlay'></span>
+                </article>
+        </article>
+</section>
+
+<span id='myoverlay'></span>
+
+
+<!--CTXMENU is the menu toggled by some filter with the button on the
+     right of their label
+<div id="ctxmenu" class="menu ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable">
+    <div class="ctxmenu-titlebar ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix">
+        <span class="ui-dialog-title">Correlate with attribute</span>
+    </div>
+    <p class="menu-item">
+        <input id="menu-item-0" class="menu-item" name="dd" type="radio" value="0" /><label for="menu-item-0">None</label>
+    </p>
+</div>
+<script>
+$(function() {
+    $("#ctxmenu").hide();
+});
+</script>
+-->
+
+<article class="dialog info" title="Permitted Button Relationships">
+        <article id="permitted">
+                {% for i in conflicts %}
+                        <p>
+                        {{i.id1}}<span id="_trattino">-</span>{{i.id2}}
+                        </p>
+                {% endfor %} 
+                <p style="display: none">Genealogy ID<span id="_trattino">-</span>Mice</p>
+                <p style="display: none">Genealogy ID<span id="_trattino">-</span>Aliquots</p>
+        </article>
+</article>
+
+<article class="dialog" id="geniddialog" title="Set Genealogy ID (or part of it)">
+        <article id="genidparts">
+                <p>Genealogy ID type:
+                <select id="selgenidtype">
+                    {% for x in genidtype %}
+                    <option>{{ x.name }}</option>
+                    {% endfor %}
+                </select></p>
+                <table id="genid">
+                <thead style="font-size: 10px">
+                    <th style="width: 40px" class="add"></th>
+                </thead>
+                <tbody>
+                <tr>
+                <td style="width: 40px" class="add">
+                    <span id="add_gid" class="add_btn" style="margin-right:5px;">add</span>
+                </td>
+                </tr>
+                </tbody>
+                </table>
+                <br>	
+				<div>
+                <table>
+                    <tr>
+                        <td>
+                            <span style="font-size:10px;margin-right:10px;">Load Genealogy IDs from file:</span>
+                        </td>
+                        <td>
+                            <form id="genidfrm"><input type="file" id="genidfile" /></form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span style="font-size:10px;margin-right:10px;">Insert full Genealogy IDs:<br>(newline or blank separated)</span>
+                            </td>
+                        <td>
+                            <textarea id="fullgenid" type="text" style="width:500px;height:80px; resize:none" maxlength="20000"></textarea></td>
+                        <td>
+                            <span id="add_gid2" class="add_btn" style="margin-right:5px;">add</span>
+                        </td>
+                    </tr>
+                </table>
+                </div>
+                <br>
+                <div id="genidlist" style="max-height: 200px;overflow: auto;"></div> 
+        </article>
+</article>
+
+
+<form id="submit_query_frm" action="{% url _caQuery.views.querygen %}" method="post">
+    <input type="hidden" id="sqf_title" name="title" />
+    <input type="hidden" id="sqf_description" name="description" />
+    <input type="hidden" id="sqf_graph_nodes" name="graph_nodes" />
+    <input type="hidden" id="sqf_qid" name="qid" />
+    {% csrf_token %}
+</form>
+
+<form id="submit_template_frm" action="{% url _caQuery.views.createTemplate %}" method="post">
+    <input type="hidden" id="stf_title" name="title" />
+    <input type="hidden" id="stf_description" name="description" />
+    <input type="hidden" id="stf_base_query" name="base_query" />
+    <input type="hidden" id="stf_conf" name="configuration" />
+    <input type="hidden" id="stf_isTranslator" name="isTranslator" value="false" />
+    <input type="hidden" id="stf_idtemplate" name="templateid" />
+    {% csrf_token %}
+</form>
+
+{% endblock %}
+ 

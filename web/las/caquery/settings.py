@@ -20,7 +20,7 @@ MONGO_HOST = 'lasmongodb'
 #BASEDIR = path.dirname(path.abspath(__file__))
 
 
-DEBUG = False
+DEBUG = True
 
 if "DEBUG_LAS" in os.environ:
     if os.environ['DEBUG_LAS'] in ('TRUE', 'True', 'true'):
